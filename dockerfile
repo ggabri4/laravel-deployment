@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y \
 # Active le mod_rewrite pour Apache (utile pour les routes Laravel)
 RUN a2enmod rewrite
 
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
 # Installe Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -39,7 +41,10 @@ COPY . .
 RUN composer dump-autoload --optimize && composer run-script post-root-package-install && composer run-script post-create-project-cmd
 
 # Change la propriété du dossier /var/www au www-data utilisateur et groupe
-RUN chown -R www-data:www-data /var/www
+RUN chown -R www-data:www-data /var/www/html \
+    && find /var/www/html -type d -exec chmod 755 {} \; \
+    && find /var/www/html -type f -exec chmod 644 {} \; \
+    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Expose le port 80
 EXPOSE 80
