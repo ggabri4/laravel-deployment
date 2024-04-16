@@ -39,9 +39,6 @@ RUN echo "ServerName $APACHE_SERVER_NAME" >> /etc/apache2/apache2.conf
 # Installe Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN useradd -m node
-USER node
-
 # Définit le répertoire de travail pour les commandes suivantes
 WORKDIR /var/www/html
 
