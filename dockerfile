@@ -26,10 +26,9 @@ RUN apt-get update && apt-get install -y \
 
 # Installer Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
-apt-get install -y nodejs
-
-# Installer Vite
-RUN npm install -g vite
+    apt-get update && \
+    apt-get install -y nodejs \
+    build-essential 
 
 # Active le mod_rewrite pour Apache (utile pour les routes Laravel)
 RUN a2enmod rewrite
@@ -40,12 +39,16 @@ RUN echo "ServerName $APACHE_SERVER_NAME" >> /etc/apache2/apache2.conf
 # Installe Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+RUN useradd -m node
+USER node
+
 # Définit le répertoire de travail pour les commandes suivantes
 WORKDIR /var/www/html
 
+COPY package.json ./
+RUN npm install
+
 # Copie le fichier de dépendances Composer et installe les dépendances
-# Remarque : Il est recommandé de copier seulement le fichier composer.json et composer.lock d'abord
-# pour permettre la mise en cache des dépendances si ces fichiers ne changent pas.
 COPY composer.json composer.lock ./
 RUN composer install --no-scripts --no-autoloader --no-dev
 
