@@ -64,6 +64,9 @@ RUN chown -R www-data:www-data /var/www/html \
 # Expose le port 80
 EXPOSE 80 5173
 
+RUN useradd -m node
+USER node
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Lance Apache en arrière-plan
