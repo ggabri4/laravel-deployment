@@ -1,43 +1,48 @@
-FROM webdevops/php-nginx:8.2
-
-# Mettre à jour Node.js vers la dernière version LTS
-RUN apt-get update && apt-get install -y curl
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get install -y nodejs
-
-RUN apt-get install -y libonig-dev libxml2-dev
-
-RUN docker-php-ext-install \
-        bcmath \
-        ctype \
-        fileinfo \
-        mbstring \
-        pdo_mysql \
-        xml
-
-# Installation dans votre image de Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-ENV WEB_DOCUMENT_ROOT /app/public
-ENV APP_ENV production
+# Build front-end assets
+FROM node:20 as frontend
 WORKDIR /app
-COPY . .
-
-# Créer le fichier SQLite
-RUN touch /app/database/database.sqlite
-
-
-# Installation et configuration de votre site pour la production
-RUN composer install --no-interaction --optimize-autoloader --no-dev
-# Optimizing Configuration loading
-RUN php artisan config:cache
-
-CMD php artisan migrate --force && php-fpm
-
-# Optimizing View loading
-RUN php artisan view:cache
-
+COPY package.json package-lock.json ./
 RUN npm install
+COPY . .
 RUN npm run build
 
-RUN chown -R application:application .
+# Build Laravel application
+FROM php:8.2-apache
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    libonig-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    git \
+    && docker-php-ext-install pdo_mysql mbstring
+
+RUN a2enmod rewrite && \
+    sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf && \
+    echo "ServerName gabhub.dev" >> /etc/apache2/apache2.conf
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Define working directory
+WORKDIR /var/www/html
+COPY --from=frontend --chown=www-data:www-data /app .
+
+# Install Composer dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev
+
+# Copy the rest of the application code
+COPY --from=frontend --chown=www-data:www-data /app .
+
+# Finalize setup by running Composer scripts and setting permissions
+RUN composer run-script post-root-package-install && \
+    composer run-script post-create-project-cmd && \
+    find /var/www/html -type d -exec chmod 755 {} \; && \
+    find /var/www/html -type f -exec chmod 644 {} \; && \
+    chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Expose ports for web traffic and Vite
+EXPOSE 80 5173
+CMD ["apache2-foreground"]
