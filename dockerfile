@@ -1,62 +1,38 @@
-# Utilise l'image officielle PHP avec Apache, adaptée à Laravel
-FROM php:8.2-apache
+FROM webdevops/php-nginx:8.2
 
-# Installe les extensions PHP nécessaires pour Laravel
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libwebp-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install -j$(nproc) gd \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath xml
+# Mettre à jour Node.js vers la dernière version LTS
+RUN apt-get update && apt-get install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
+RUN apt-get install -y nodejs
 
-# Installer Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
-    apt-get update && \
-    apt-get install -y nodejs \
-    build-essential 
+RUN apt-get install -y libonig-dev libxml2-dev
 
-# Active le mod_rewrite pour Apache (utile pour les routes Laravel)
-RUN a2enmod rewrite
+RUN docker-php-ext-install \
+        bcmath \
+        ctype \
+        fileinfo \
+        mbstring \
+        pdo_mysql \
+        xml
 
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-
-# Installe Composer
+# Installation dans votre image de Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Définit le répertoire de travail pour les commandes suivantes
-WORKDIR /var/www/html
-
-COPY package.json ./
-RUN npm install
-
-# Copie le fichier de dépendances Composer et installe les dépendances
-COPY composer.json composer.lock ./
-RUN composer install --no-scripts --no-autoloader --no-dev
-
-# Copie le reste du code source de l'application
+ENV WEB_DOCUMENT_ROOT /app/public
+ENV APP_ENV production
+WORKDIR /app
 COPY . .
 
-# Génère l'autoloader optimisé de Composer
-RUN composer dump-autoload --optimize && composer run-script post-root-package-install && composer run-script post-create-project-cmd
+# Installation et configuration de votre site pour la production
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Generate security key
+RUN php artisan key:generate
+# Optimizing Configuration loading
+RUN php artisan config:cache
+# Optimizing View loading
+RUN php artisan view:cache
 
-# Change la propriété du dossier /var/www au www-data utilisateur et groupe
-RUN chown -R www-data:www-data /var/www/html \
-    && find /var/www/html -type d -exec chmod 755 {} \; \
-    && find /var/www/html -type f -exec chmod 644 {} \; \
-    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
-
+RUN npm install
 RUN npm run build
 
-# Expose le port 80
-EXPOSE 80 5173
-
-# Lance Apache en arrière-plan
-CMD ["apache2-foreground"]
+RUN chown -R application:application .
