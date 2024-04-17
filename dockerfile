@@ -15,10 +15,10 @@ RUN docker-php-ext-install \
         pdo_mysql \
         xml
 
+RUN sed -i 's/listen 80;/listen 8080;/g' /opt/docker/etc/nginx/vhost.conf
+
 # Installation dans votre image de Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-RUN ln -s /var/log/nginx /var/www/html/logs
 
 ENV WEB_DOCUMENT_ROOT /app/public
 ENV APP_ENV production
