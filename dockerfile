@@ -25,8 +25,6 @@ COPY . .
 
 # Installation et configuration de votre site pour la production
 RUN composer install --no-interaction --optimize-autoloader --no-dev
-# Generate security key
-RUN php artisan key:generate
 # Optimizing Configuration loading
 RUN php artisan config:cache
 # Optimizing View loading
