@@ -15,8 +15,6 @@ RUN docker-php-ext-install \
         pdo_mysql \
         xml
 
-RUN sed -i 's/listen 80;/listen 8080;/g' /opt/docker/etc/nginx/vhost.conf
-
 # Installation dans votre image de Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -25,10 +23,17 @@ ENV APP_ENV production
 WORKDIR /app
 COPY . .
 
+# Créer le fichier SQLite
+RUN touch /app/database/database.sqlite
+
+
 # Installation et configuration de votre site pour la production
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 # Optimizing Configuration loading
 RUN php artisan config:cache
+
+CMD php artisan migrate --force && php-fpm
+
 # Optimizing View loading
 RUN php artisan view:cache
 
