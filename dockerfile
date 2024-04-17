@@ -7,8 +7,6 @@ RUN apt-get install -y nodejs
 
 RUN apt-get install -y libonig-dev libxml2-dev
 
-RUN cat /etc/nginx/sites-enabled/default
-
 RUN docker-php-ext-install \
         bcmath \
         ctype \
@@ -36,3 +34,5 @@ RUN npm install
 RUN npm run build
 
 RUN chown -R application:application .
+
+EXPOSE 80
