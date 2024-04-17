@@ -7,6 +7,8 @@ RUN apt-get install -y nodejs
 
 RUN apt-get install -y libonig-dev libxml2-dev
 
+RUN sed -i 's/listen 80 default_server;/listen 80;/g' /etc/nginx/sites-enabled/default
+
 RUN docker-php-ext-install \
         bcmath \
         ctype \
