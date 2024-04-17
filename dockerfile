@@ -18,6 +18,8 @@ RUN docker-php-ext-install \
 # Installation dans votre image de Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+RUN ln -s /var/log/nginx /var/www/html/logs
+
 ENV WEB_DOCUMENT_ROOT /app/public
 ENV APP_ENV production
 WORKDIR /app
@@ -34,5 +36,3 @@ RUN npm install
 RUN npm run build
 
 RUN chown -R application:application .
-
-EXPOSE 80
