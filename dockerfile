@@ -46,9 +46,5 @@ RUN composer run-script post-root-package-install && \
 # Expose ports for web traffic and Vite
 EXPOSE 80 5173
 
-# Copy start script
-COPY start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh
-
-# Start Apache and run migrations
-CMD ["/usr/local/bin/start.sh", "apache2-foreground"]
+# Start Apache
+CMD ["apache2-foreground"]
