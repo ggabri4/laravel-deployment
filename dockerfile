@@ -45,4 +45,4 @@ RUN composer run-script post-root-package-install && \
 
 # Expose ports for web traffic and Vite
 EXPOSE 80 5173
-CMD ["apache2-foreground"]
+CMD ["sh", "-c", "php artisan migrate --force && apache2-foreground"]
